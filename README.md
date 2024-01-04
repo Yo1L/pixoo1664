@@ -9,7 +9,7 @@ pip install pixoo1664
 
 To use:
 ```python
-from pixoo import Pixoo
+from pixoo1664 import Pixoo
 
 pixoo = Pixoo("192.168.16.64")
 ```
