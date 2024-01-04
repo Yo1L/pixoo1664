@@ -247,9 +247,9 @@ class Pixoo:  # noqa: D101
 
     def __request(self, data: list):
         response = requests.post(self.__url, json.dumps(data), timeout=self.__timeout)
-        json_response = response.json()
+        response.raise_for_status()
 
-        print(json_response)
+        json_response = response.json()
 
         if json_response["error_code"] != 0:
             raise InvalidPixooResponse(

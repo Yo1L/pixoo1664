@@ -15,6 +15,17 @@ def test_fail_to_load_counter(mocker):
         assert ex != None
 
 
+def test_fail_to_connect(mocker):
+    """Given a city name, test that a HTML report about the weather is generated
+    correctly."""
+    mocker.patch("requests.post", status_code=500)
+
+    try:
+        Pixoo("1.1.1.1")
+    except InvalidPixooResponse as ex:
+        assert ex != None
+
+
 def test_to_load_counter(mocker):
     """Given a city name, test that a HTML report about the weather is generated
     correctly."""
