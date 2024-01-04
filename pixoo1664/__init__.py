@@ -5,6 +5,14 @@ from PIL import Image
 import requests
 
 
+class InvalidPixooResponse(Exception):
+    """
+    Raised when an email address is invalid
+    """
+
+    pass
+
+
 class Pixoo:  # noqa: D101
     ### proxy to communicate with a DIVOOM PIXOO. ###
     __timeout = 10
@@ -20,6 +28,7 @@ class Pixoo:  # noqa: D101
         size=64,
         debug=False,
         auto_pic_id_reset=True,
+        load_counter=True,
         timeout=10,
     ) -> None:
         assert size in [16, 32, 64], (
@@ -35,12 +44,13 @@ class Pixoo:  # noqa: D101
         self.__url = "http://{0}/post".format(address)
         self.__timeout = timeout
 
-        # Retrieve the counter
-        self.__load_counter()
+        if load_counter:
+            # Retrieve the counter
+            self.__load_counter()
 
-        # Resetting if needed
-        if self.auto_pic_id_reset and self.__pic_id > self.__refresh_pic_id_limit:
-            self.reset_pic_id()
+            # Resetting if needed
+            if self.auto_pic_id_reset and self.__pic_id > self.__refresh_pic_id_limit:
+                self.reset_pic_id()
 
     def send_images(self, images: [Image], speed=60) -> None:
         self.__increment_pic_id()
@@ -150,12 +160,20 @@ class Pixoo:  # noqa: D101
         ### set screen on/off. ###
         self.__request({"Command": "Channel/OnOffScreen", "OnOff": 1 if on else 0})
 
-    def set_temperature_mode(self, celsius=True):
+    def set_temperature_in_celsius(self, on=True):
         ### set screen on/off. ###
-        self.__request({
-            "Command":"Device/SetDisTempMode",
-            "Mode":0 if celsius else 1
-        })
+        self.__request({"Command": "Device/SetDisTempMode", "Mode": 0 if on else 1})
+
+    def set_timer(self, minute, second=0, start=True):
+        ### set screen on/off. ###
+        self.__request(
+            {
+                "Command": "Tools/SetTimer",
+                "Minute": minute,
+                "Second": second,
+                "Status": 1 if start else 0,
+            }
+        )
 
     def get_all_conf(self):
         return self.__request({"Command": "Channel/GetAllConf"})
@@ -166,16 +184,18 @@ class Pixoo:  # noqa: D101
             return True
         else:
             return False
-        
+
     def set_system_time(self, utc_time):
         return self.__request({"Command": "Device/SetUTC", "Utc": utc_time})
-    
-    def get_system_time(self, utc_time):
+
+    def set_24_hour_mode(self, on=True):
+        return self.__request(
+            {"Command": "Device/SetTime24Flag", "Mode": 1 if on else 0}
+        )
+
+    def get_system_time(self):
         response = self.__request({"Command": "Device/GetDeviceTime"})
-        if response and "UTCTime" in response:
-            return response["UTCTime"]
-        else:
-            return False
+        return response["UTCTime"]
 
     def set_rotation_angle(self, angle=0):
         ### set rotation angle in degree ###
@@ -189,11 +209,16 @@ class Pixoo:  # noqa: D101
             mode = 2
         elif angle == 270:
             mode = 3
-        return self.__request({"Command": "Device/SetScreenRotationAngle", "Mode": mode})
-    
+
+        return self.__request(
+            {"Command": "Device/SetScreenRotationAngle", "Mode": mode}
+        )
+
     def set_brightness(self, brightness):
         ### set brightness value ###
-        return self.__request({"Command": "Channel/SetBrightness", "Brightness": brightness})
+        return self.__request(
+            {"Command": "Channel/SetBrightness", "Brightness": brightness}
+        )
 
     def get_brightness(self):
         data = self.get_all_conf()
@@ -207,10 +232,9 @@ class Pixoo:  # noqa: D101
 
     def __load_counter(self):
         data = self.__request({"Command": "Draw/GetHttpGifId"})
-        if data:
-            self.__pic_id = int(data["PicId"])
-            if self.debug:
-                print("[.] Counter loaded and stored: " + str(self.__pic_id))
+        self.__pic_id = int(data["PicId"])
+        if self.debug:
+            print("[.] Counter loaded and stored: " + str(self.__pic_id))
 
     def __increment_pic_id(self):
         # Add to the internal counter
@@ -225,9 +249,11 @@ class Pixoo:  # noqa: D101
         response = requests.post(self.__url, json.dumps(data), timeout=self.__timeout)
         json_response = response.json()
 
+        print(json_response)
+
         if json_response["error_code"] != 0:
-            print(data)
-            print(json_response)
-            return False
-        else:
-            return json_response
+            raise InvalidPixooResponse(
+                "Pixoo Error code: {0}".format(json_response["error_code"])
+            )
+
+        return json_response

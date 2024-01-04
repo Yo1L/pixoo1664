@@ -48,16 +48,14 @@ pixoo.send_images(images, speed=60)
 
 ## Brightness
 
-Get brightness
+Get brightness 0~100
 ```python
-pixoo.get_brightness()
-# => 0.8
+pixoo.get_brightness() # -> 80
 ```
 
 Set brightness 0~100
 ```python
-pixoo.set_brightness(0.9)
-# => 0.8
+pixoo.set_brightness(90)
 ```
 
 Set screen on/off
@@ -73,16 +71,31 @@ Set system time
 pixoo.set_system_time(1672416000)
 ```
 
+Get system time
+```python
+pixoo.get_system_time() # -> 1672416000
+```
+
+Set 24 hour mode (reset when the device power off)
+```python
+pixoo.set_24_hour_mode(True)
+```
+
+Set 12 hour mode (reset when the device power off)
+```python
+pixoo.set_24_hour_mode(False)
+```
+
 ## Temperature mode
 
 Set temperature in Celsius
 ```python
-pixoo.set_temperature_mode(celsius=True)
+pixoo.set_temperature_in_celsius(True)
 ```
 
 Set temperature in Fahrenheit
 ```python
-pixoo.set_temperature_mode(celsius=False)
+pixoo.set_temperature_in_celsius(False)
 ```
 
 ## Screen rotation
@@ -90,4 +103,33 @@ pixoo.set_temperature_mode(celsius=False)
 Set rotation angle in degree 0, 90, 180 and 270
 ```python
 pixoo.set_rotation_angle(90)
+```
+
+## Configuration
+
+Get all settings (https://doc.divoom-gz.com/web/#/12?page_id=243)
+```python
+pixoo.get_all_conf()
+#   {
+#     "Brightness":100,
+#     "RotationFlag":1,
+#     "ClockTime":60,
+#     "GalleryTime":60,
+#     "SingleGalleyTime":5,
+#     "PowerOnChannelId":1,
+#     "GalleryShowTimeFlag":1,
+#     "CurClockId":1,
+#     "Time24Flag":1,
+#     "TemperatureMode":1,
+#     "GyrateAngle":1,
+#     "MirrorFlag":1,
+#     "LightSwitch":1
+#   }
+```
+
+## Page
+
+Set a timer
+```python
+pixoo.set_timer(minute=1, second=3, start=True)
 ```
