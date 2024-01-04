@@ -1,6 +1,6 @@
 [project]
 name = "pixoo1664"
-version = "1.0.1"
+version = "1.0.0"
 authors = [{ name = "Yoann Le Viavant", email = "yleviavant@gmail.com" }]
 description = "Unofficial Divoom pixoo REST library, beer not included."
 readme = "README.md"
