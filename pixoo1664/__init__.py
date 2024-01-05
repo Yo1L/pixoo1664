@@ -19,37 +19,33 @@ class Pixoo:  # noqa: D101
     __pic_id = 0
     __text_id = 0
     __refresh_pic_id_limit = 32
-    debug = False
+    __raise_exceptions = True
+    __auto_load_counter = True
+    __debug = False
 
     def __init__(  # noqa: D107
         ### constructor... ###
         self,
         address,
-        size=64,
         debug=False,
-        auto_pic_id_reset=True,
-        load_counter=True,
+        auto_load_counter=True,
+        raise_exceptions=True,
         timeout=10,
     ) -> None:
-        assert size in [16, 32, 64], (
-            "Invalid screen size (pixels). " "Valid options are 16, 32, and 64"
-        )
-
-        self.auto_pic_id_reset = auto_pic_id_reset
-        self.address = address
-        self.debug = debug
-        self.size = size
+        self.__auto_load_counter = auto_load_counter
+        self.__debug = debug
+        self.__raise_exceptions = raise_exceptions
 
         # Generate URL
         self.__url = "http://{0}/post".format(address)
         self.__timeout = timeout
 
-        if load_counter:
+        if auto_load_counter:
             # Retrieve the counter
             self.__load_counter()
 
             # Resetting if needed
-            if self.auto_pic_id_reset and self.__pic_id > self.__refresh_pic_id_limit:
+            if self.__pic_id > self.__refresh_pic_id_limit:
                 self.reset_pic_id()
 
     def send_images(self, images: [Image], speed=60) -> None:
@@ -77,12 +73,12 @@ class Pixoo:  # noqa: D101
 
             offset += 1
 
-        self.__request(json_data)
+        return self.__request(json_data)
 
     def send_image(self, image: Image):
         self.__increment_pic_id()
 
-        self.__request(
+        return self.__request(
             {
                 "Command": "Draw/SendHttpGif",
                 "PicNum": 1,
@@ -101,7 +97,7 @@ class Pixoo:  # noqa: D101
 
     def clear_text(self):
         self.__reset_text_id()
-        self.__request({"Command": "Draw/ClearHttpText"})
+        return self.__request({"Command": "Draw/ClearHttpText"})
 
     def send_text(
         self,
@@ -119,7 +115,7 @@ class Pixoo:  # noqa: D101
         if self.__text_id >= 20:
             self.__reset_text_id()
 
-        self.__request(
+        return self.__request(
             {
                 "Command": "Draw/SendHttpText",
                 "TextId": self.__text_id,
@@ -137,7 +133,7 @@ class Pixoo:  # noqa: D101
 
     def set_visualizer(self, equalizer_position):
         ### set visualizer. ###
-        self.__request(
+        return self.__request(
             {"Command": "Channel/SetEqPosition", "EqPosition": equalizer_position}
         )
 
@@ -149,24 +145,28 @@ class Pixoo:  # noqa: D101
 
     def set_custom_channel(self, index):
         self.set_custom_page(index)
-        self.set_channel(3)
+        return self.set_channel(3)
 
     def set_custom_page(self, index):
-        self.__request(
+        return self.__request(
             {"Command": "Channel/SetCustomPageIndex", "CustomPageIndex": index}
         )
 
     def set_screen(self, on=True):
         ### set screen on/off. ###
-        self.__request({"Command": "Channel/OnOffScreen", "OnOff": 1 if on else 0})
+        return self.__request(
+            {"Command": "Channel/OnOffScreen", "OnOff": 1 if on else 0}
+        )
 
     def set_temperature_in_celsius(self, on=True):
         ### set screen on/off. ###
-        self.__request({"Command": "Device/SetDisTempMode", "Mode": 0 if on else 1})
+        return self.__request(
+            {"Command": "Device/SetDisTempMode", "Mode": 0 if on else 1}
+        )
 
     def set_timer(self, minute, second=0, start=True):
         ### set screen on/off. ###
-        self.__request(
+        return self.__request(
             {
                 "Command": "Tools/SetTimer",
                 "Minute": minute,
@@ -225,15 +225,15 @@ class Pixoo:  # noqa: D101
         return data["Brightness"]
 
     def reset_pic_id(self):
-        if self.debug:
+        if self.__debug:
             print("[.] Resetting counter remotely")
 
-        self.__request({"Command": "Draw/ResetHttpGifId"})
+        return self.__request({"Command": "Draw/ResetHttpGifId"})
 
     def __load_counter(self):
         data = self.__request({"Command": "Draw/GetHttpGifId"})
         self.__pic_id = int(data["PicId"])
-        if self.debug:
+        if self.__debug:
             print("[.] Counter loaded and stored: " + str(self.__pic_id))
 
     def __increment_pic_id(self):
@@ -241,19 +241,27 @@ class Pixoo:  # noqa: D101
         self.__pic_id = self.__pic_id + 1
 
         # Check if we've passed the limit and reset the counter for the animation remotely
-        if self.auto_pic_id_reset and self.__pic_id >= self.__refresh_pic_id_limit:
+        if self.__auto_load_counter and self.__pic_id >= self.__refresh_pic_id_limit:
             self.reset_pic_id()
             self.__pic_id = 1
 
     def __request(self, data: list):
-        response = requests.post(self.__url, json.dumps(data), timeout=self.__timeout)
-        response.raise_for_status()
-
-        json_response = response.json()
-
-        if json_response["error_code"] != 0:
-            raise InvalidPixooResponse(
-                "Pixoo Error code: {0}".format(json_response["error_code"])
+        try:
+            response = requests.post(
+                self.__url, json.dumps(data), timeout=self.__timeout
             )
+
+            response.raise_for_status()
+            json_response = response.json()
+
+            if json_response["error_code"] != 0:
+                raise InvalidPixooResponse(
+                    "Pixoo Error code: {0}".format(json_response["error_code"])
+                )
+        except Exception as ex:
+            if self.__raise_exceptions:
+                raise ex
+            else:
+                return False
 
         return json_response

@@ -47,8 +47,19 @@ def test_set_brightness(mocker):
     mocker.patch("requests.post", return_value=mock_response)
 
     try:
-        pixoo = Pixoo("1.1.1.1", load_counter=False)
+        pixoo = Pixoo("1.1.1.1", auto_load_counter=False)
 
         pixoo.set_brightness(10)
     except Exception as ex:
         pytest.fail(ex)
+
+
+def test_disable_exceptions(mocker):
+    """Given a city name, test that a HTML report about the weather is generated
+    correctly."""
+
+    try:
+        pixoo = Pixoo("1.1.1.1", raise_exceptions=False, auto_load_counter=False)
+        assert pixoo.set_screen(True) == False
+    except InvalidPixooResponse as ex:
+        pytest.fail("ouch")
